@@ -1,0 +1,82 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{natbib}
+\usepackage{url}
+
+\bibliographystyle{plain}
+\geometry{margin=1in}
+
+\title{Machine Learning - Final Project Proposal}
+\author{Michael Dadush 206917908 \\ Shay Gali 315202242}
+\date{January 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{The Dataset}
+We chose to work with the Adience Benchmark dataset for Gender and Age Classification\cite{adience_dataset}. This dataset has real-world images of faces, which makes it good for testing different machine learning methods. The dataset includes:
+
+
+\subsection*{Labels in Dataset}
+\begin{itemize}[leftmargin=1.5cm]
+    \item Gender: male/female
+    \item Age Groups: There are 8 groups:
+    \begin{enumerate}
+        \item 0-2 years
+        \item 4-6 years
+        \item 8-12 years
+        \item 15-20 years
+        \item 25-32 years
+        \item 38-43 years
+        \item 48-53 years
+        \item 60 and above
+    \end{enumerate}
+\end{itemize}
+
+\section{Main Questions We Want to Check}
+\begin{enumerate}[leftmargin=1.5cm]
+\item \textbf{How Models Work with Different Images}
+\begin{itemize}
+    \item What happens when images are not clear or blurry?
+    \item Do face expressions (like smiling or not smiling) change the results?
+\end{itemize}
+
+\item \textbf{Can We Use This in Real Life}
+\begin{itemize}
+    \item Will it work fast enough for apps or security cameras?
+    \item What about when there's bad lighting or people wear glasses?
+\end{itemize}
+
+\item \textbf{About Age Prediction}
+\begin{itemize}
+    \item Which model is best at dealing with different ages?
+\end{itemize}
+
+\item \textbf{Different Types of People}
+\begin{itemize}
+    \item Does it work the same for people from different places?
+    \item Can we use the same model everywhere or do we need different ones?
+\end{itemize}
+\end{enumerate}
+
+\section{Tools and Techniques}
+To address the above questions and achieve optimal performance, we propose the following tools and techniques:
+\begin{itemize}[leftmargin=1.5cm]
+    \item \textbf{Softmax for Age Prediction}: Use a multi-class softmax classifier for predicting age ranges based on the 8 defined groups.
+    \item \textbf{Logistic Regression for Gender Prediction}: Binary logistic regression model to predict gender.
+    \item \textbf{Softmax for labeling of Age and Gender together}: Use softmax for predicting age and gender together (16 classes).
+    \item \textbf{Traditional Models}: Random Forests, SVM, and AdaBoost.
+    \item \textbf{DL - Convolutional Neural Networks (CNNs)}: Architectures like ResNet, MobileNet, and EfficientNet for feature extraction and prediction.
+\end{itemize}
+
+
+\section{Summary}
+In this project, we will try different ways to guess age and gender from pictures. We want to check what works best and what problems we might have. We will use the Adience dataset and try both simple and complex methods to solve this.
+
+
+\bibliography{references}
+\end{document}
