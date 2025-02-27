@@ -1,2 +1,4 @@
 .idea
 data
+*.h5
+*.pkl
