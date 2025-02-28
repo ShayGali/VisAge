@@ -3,5 +3,6 @@ data
 *.h5
 *.pkl
 *.joblib
+*.npy
 .venv
 venv
