@@ -7,11 +7,103 @@ import os
 import numpy as np
 from typing import List
 from PIL import Image
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, IncrementalPCA
 import joblib
 
-# Global variable to store PCA objects
+# Global variables to store models and PCA objects
+_RESNET_MODEL = None
 _PCA_CACHE = {}
+
+
+def get_resnet_model():
+    """
+    Returns a cached ResNet50 model to avoid reloading it.
+    """
+    global _RESNET_MODEL
+    if _RESNET_MODEL is None:
+        base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+        _RESNET_MODEL = tf.keras.Sequential([
+            base_model,
+            tf.keras.layers.GlobalAveragePooling2D()
+        ])
+    return _RESNET_MODEL
+
+
+def _img2emb(img_paths: List[str], batch_size=32, color_mode='rgb') -> np.ndarray:
+    """
+    Convert RGB images to embeddings using ResNet50 with batch processing.
+
+    :param img_paths: List of paths to images
+    :param batch_size: Size of batches to process at once
+    :return: Array of embeddings with shape (n_images, 2048)
+    """
+    model = get_resnet_model()
+
+    all_features = []
+    valid_indices = []
+    valid_paths = []
+
+    # First check which images exist and can be loaded
+    for i, img_path in enumerate(img_paths):
+        try:
+            if not os.path.exists(img_path):
+                print(f"Warning: File not found: {img_path}")
+                continue
+
+            valid_indices.append(i)
+            valid_paths.append(img_path)
+        except Exception as e:
+            print(f"Error checking image {img_path}: {e}")
+
+    # Process valid images in batches
+    for i in range(0, len(valid_paths), batch_size):
+        batch_paths = valid_paths[i:i + batch_size]
+        imgs = []
+
+        for img_path in batch_paths:
+            try:
+                img = image.load_img(img_path, target_size=(224, 224), color_mode=color_mode)
+                x = image.img_to_array(img)
+                imgs.append(x)
+            except Exception as e:
+                print(f"Error processing image {img_path}: {e}")
+                # Add a placeholder instead
+                imgs.append(np.zeros((224, 224, 3)))
+
+        batch = np.array(imgs)
+        batch = preprocess_input(batch)
+        features = model.predict(batch, verbose=0)
+        all_features.append(features)
+
+    if not all_features:
+        return np.array([])
+
+    # Combine all batches
+    all_features_array = np.vstack(all_features)
+
+    # Create result array with same length as input, with zeros for failed images
+    result = np.zeros((len(img_paths), all_features_array.shape[1]))
+
+    # Fill in the features for valid images
+    for idx, valid_idx in enumerate(valid_indices):
+        if idx < len(all_features_array):
+            result[valid_idx] = all_features_array[idx]
+
+    return result
+
+
+def grayscale2emb(img_paths: List[str], batch_size=32) -> np.ndarray:
+    """
+    Convert grayscale images to embeddings using ResNet50 with batch processing.
+    """
+    return _img2emb(img_paths, batch_size=batch_size, color_mode='grayscale')
+
+
+def rgb2emb(img_paths: List[str], batch_size=32) -> np.ndarray:
+    """
+    Convert RGB images to embeddings using ResNet50 with batch processing.
+    """
+    return _img2emb(img_paths, batch_size=batch_size, color_mode='rgb')
 
 
 def rgb2flatPCA(img_paths: List[str], n_components: int = 256, img_size=(224, 224)):
@@ -89,113 +181,38 @@ def rgb2flatPCA(img_paths: List[str], n_components: int = 256, img_size=(224, 22
 
 
 # Helper function to pre-train PCA on a large dataset
-def pretrain_pca(image_paths, n_components=256, img_size=(224, 224)):
-    """
-    Pre-train PCA on a larger dataset to ensure we can use desired n_components.
 
-    :param image_paths: List of paths to images to use for training
-    :param n_components: Number of components to use
-    :param img_size: Image size to use
-    :return: Trained PCA object
-    """
-    print(f"Pre-training PCA with {len(image_paths)} images...")
 
-    # Use a sufficient sample size to ensure we can extract n_components
-    sample_size = min(1000, len(image_paths))
-    sample_paths = image_paths[:sample_size]
+def pretrain_pca(image_paths, n_components=256, img_size=(224, 224), batch_size=100):
+    """Use IncrementalPCA to handle larger datasets with less memory"""
+    print(f"Pre-training Incremental PCA with {len(image_paths)} images...")
 
-    # For RGB images
-    flattened_images = []
-    for i, path in enumerate(sample_paths):
-        if i % 100 == 0:
-            print(f"Processing image {i}/{sample_size}...")
-        try:
-            img = Image.open(path).convert('RGB')
-            img = img.resize(img_size)
-            arr = np.array(img)
-            flat = arr.flatten()
-            flattened_images.append(flat)
-        except Exception as e:
-            print(f"Error: {e}")
-            flattened_images.append(np.zeros(img_size[0] * img_size[1] * 3))
+    ipca = IncrementalPCA(n_components=n_components)
 
-    X = np.stack(flattened_images, axis=0)
+    for i in range(0, len(image_paths), batch_size):
+        batch_paths = image_paths[i:i + batch_size]
+        print(f"Processing batch {i // batch_size + 1}/{len(image_paths) // batch_size + 1}...")
 
-    # Fit PCA
-    pca = PCA(n_components=n_components)
-    pca.fit(X)
+        flattened_images = []
+        for path in batch_paths:
+            try:
+                img = Image.open(path).convert('RGB')
+                img = img.resize(img_size)
+                arr = np.array(img)
+                flat = arr.flatten()
+                flattened_images.append(flat)
+            except Exception as e:
+                print(f"Error: {e}")
 
-    # Save to cache
-    global _PCA_CACHE
+        if flattened_images:
+            X = np.stack(flattened_images, axis=0)
+            ipca.partial_fit(X)
+
+    # Save to cache and disk
     cache_key = f"rgb_{n_components}_{img_size[0]}x{img_size[1]}"
-    _PCA_CACHE[cache_key] = pca
-
-    # Save to disk
+    _PCA_CACHE[cache_key] = ipca
     pca_file = f"pca_cache_{cache_key}.joblib"
-    joblib.dump(pca, pca_file)
+    joblib.dump(ipca, pca_file)
 
-    print(f"PCA pre-training complete. Saved to {pca_file}")
-    return pca
-
-
-def gray2emb(img_paths: List[str]) -> np.ndarray:
-    """
-    Convert images to grayscale and then to embeddings using ResNet50.
-    Assumes that the images are in RGB format and that the image is square.
-    :param img_paths:
-    :return: embeddings matrix of shape (n_images, 2048)
-    """
-    # Load ResNet50 without the top classification layer:
-    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-    # Add a global average pooling layer to convert features to a vector
-    model = tf.keras.Sequential([
-        base_model,
-        tf.keras.layers.GlobalAveragePooling2D()
-    ])
-
-    imgs = []
-
-    for img_path in img_paths:
-        # Preprocess and load your grayscale image:
-        img = image.load_img(img_path, target_size=(224, 224), color_mode='grayscale')
-        x = image.img_to_array(img)  # shape: (224,224,1)
-        # Replicate the grayscale channel three times to simulate an RGB image:
-        x = np.repeat(x, 3, axis=-1)  # shape: (224,224,3)
-        imgs.append(x)
-
-    batch = np.array(imgs)
-    batch = preprocess_input(batch)
-
-    # Get the vector representation:
-    feature_vector = model.predict(batch)
-    return feature_vector
-
-
-def rgb2emb(img_paths: List[str]) -> np.ndarray:
-    """
-    Convert RGB images to embeddings using ResNet50.
-    Assumes that the images are already in RGB format and that the image is square.
-    :param img_paths:
-    :return: embeddings matrix of shape (n_images, 2048)
-    """
-    # Load ResNet50 without the top classification layer:
-    model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-    # Add a global average pooling layer to convert features to a vector
-    model = tf.keras.Sequential([
-        model,
-        tf.keras.layers.GlobalAveragePooling2D()
-    ])
-
-    imgs = []
-
-    for img_path in img_paths:
-        img = image.load_img(img_path, target_size=(224, 224))
-        x = image.img_to_array(img)
-        imgs.append(x)
-
-    batch = np.array(imgs)
-    batch = preprocess_input(batch)
-
-    # Get the vector representation:
-    feature_vector = model.predict(batch)
-    return feature_vector
+    print(f"Incremental PCA pre-training complete. Saved to {pca_file}")
+    return ipca
