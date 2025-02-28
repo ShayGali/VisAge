@@ -3,3 +3,5 @@ data
 *.h5
 *.pkl
 *.joblib
+.venv
+venv
