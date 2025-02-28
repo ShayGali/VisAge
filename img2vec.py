@@ -14,14 +14,14 @@ import joblib
 _PCA_CACHE = {}
 
 
-def rgb2flatPCA(img_paths: List[str], n_components: int = 256, img_size=(128, 128)):
+def rgb2flatPCA(img_paths: List[str], n_components: int = 256, img_size=(224, 224)):
     """
     Convert RGB images to single flattened vectors and then reduce the dimensionality using PCA.
     Uses a cached PCA model when available to handle small batches while maintaining n_components=256.
 
     :param img_paths: List of paths to images.
     :param n_components: Number of PCA components to retain (default is 256).
-    :param img_size: Size to resize images to (default is 128x128).
+    :param img_size: Size to resize images to (default is 224x224).
     :return: A NumPy array of shape (num_images, n_components) where each row is a reduced feature vector.
     """
     global _PCA_CACHE
@@ -89,7 +89,7 @@ def rgb2flatPCA(img_paths: List[str], n_components: int = 256, img_size=(128, 12
 
 
 # Helper function to pre-train PCA on a large dataset
-def pretrain_pca(image_paths, n_components=256, img_size=(128, 128)):
+def pretrain_pca(image_paths, n_components=256, img_size=(224, 224)):
     """
     Pre-train PCA on a larger dataset to ensure we can use desired n_components.
 
@@ -141,12 +141,12 @@ def pretrain_pca(image_paths, n_components=256, img_size=(128, 128)):
 def gray2emb(img_paths: List[str]) -> np.ndarray:
     """
     Convert images to grayscale and then to embeddings using ResNet50.
-    Assumes that the images are in RGB format and have the same size of 128x128
+    Assumes that the images are in RGB format and that the image is square.
     :param img_paths:
     :return: embeddings matrix of shape (n_images, 2048)
     """
     # Load ResNet50 without the top classification layer:
-    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(128, 128, 3))
+    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
     # Add a global average pooling layer to convert features to a vector
     model = tf.keras.Sequential([
         base_model,
@@ -157,10 +157,10 @@ def gray2emb(img_paths: List[str]) -> np.ndarray:
 
     for img_path in img_paths:
         # Preprocess and load your grayscale image:
-        img = image.load_img(img_path, target_size=(128, 128), color_mode='grayscale')
-        x = image.img_to_array(img)  # shape: (128,128,1)
+        img = image.load_img(img_path, target_size=(224, 224), color_mode='grayscale')
+        x = image.img_to_array(img)  # shape: (224,224,1)
         # Replicate the grayscale channel three times to simulate an RGB image:
-        x = np.repeat(x, 3, axis=-1)  # shape: (128,128,3)
+        x = np.repeat(x, 3, axis=-1)  # shape: (224,224,3)
         imgs.append(x)
 
     batch = np.array(imgs)
@@ -174,12 +174,12 @@ def gray2emb(img_paths: List[str]) -> np.ndarray:
 def rgb2emb(img_paths: List[str]) -> np.ndarray:
     """
     Convert RGB images to embeddings using ResNet50.
-    Assumes that the images are already in RGB format and have the same size of 128x128
+    Assumes that the images are already in RGB format and that the image is square.
     :param img_paths:
     :return: embeddings matrix of shape (n_images, 2048)
     """
     # Load ResNet50 without the top classification layer:
-    model = ResNet50(weights='imagenet', include_top=False, input_shape=(128, 128, 3))
+    model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
     # Add a global average pooling layer to convert features to a vector
     model = tf.keras.Sequential([
         model,
@@ -189,7 +189,7 @@ def rgb2emb(img_paths: List[str]) -> np.ndarray:
     imgs = []
 
     for img_path in img_paths:
-        img = image.load_img(img_path, target_size=(128, 128))
+        img = image.load_img(img_path, target_size=(224, 224))
         x = image.img_to_array(img)
         imgs.append(x)
 
