@@ -29,7 +29,7 @@ def get_resnet_model():
     return _RESNET_MODEL
 
 
-def _img2emb(img_paths: List[str], batch_size=32, color_mode='rgb') -> np.ndarray:
+def rgb2emb(img_paths: List[str], batch_size=32) -> np.ndarray:
     """
     Convert RGB images to embeddings using ResNet50 with batch processing.
 
@@ -62,7 +62,7 @@ def _img2emb(img_paths: List[str], batch_size=32, color_mode='rgb') -> np.ndarra
 
         for img_path in batch_paths:
             try:
-                img = image.load_img(img_path, target_size=(224, 224), color_mode=color_mode)
+                img = image.load_img(img_path, target_size=(224, 224))
                 x = image.img_to_array(img)
                 imgs.append(x)
             except Exception as e:
@@ -94,17 +94,67 @@ def _img2emb(img_paths: List[str], batch_size=32, color_mode='rgb') -> np.ndarra
 
 def grayscale2emb(img_paths: List[str], batch_size=32) -> np.ndarray:
     """
-    Convert grayscale images to embeddings using ResNet50 with batch processing.
+    Convert images to embeddings using ResNet50 with batch processing.
+    :param img_paths: List of paths to images
+    :param batch_size: Size of batches to process at once
+    :return: Array of embeddings with shape (n_images, 2048)
     """
-    return _img2emb(img_paths, batch_size=batch_size, color_mode='grayscale')
+    model = get_resnet_model()
 
+    all_features = []
+    valid_indices = []
+    valid_paths = []
 
-def rgb2emb(img_paths: List[str], batch_size=32) -> np.ndarray:
-    """
-    Convert RGB images to embeddings using ResNet50 with batch processing.
-    """
-    return _img2emb(img_paths, batch_size=batch_size, color_mode='rgb')
+    # First check which images exist and can be loaded
+    for i, img_path in enumerate(img_paths):
+        try:
+            if not os.path.exists(img_path):
+                print(f"Warning: File not found: {img_path}")
+                continue
 
+            valid_indices.append(i)
+            valid_paths.append(img_path)
+        except Exception as e:
+            print(f"Error checking image {img_path}: {e}")
+
+    # Process valid images in batches
+    for i in range(0, len(valid_paths), batch_size):
+        batch_paths = valid_paths[i:i + batch_size]
+        imgs = []
+
+        for img_path in batch_paths:
+            try:
+                # Load image with specified color mode
+                img = image.load_img(img_path, target_size=(224, 224), color_mode='grayscale')
+                x = image.img_to_array(img)
+                x = np.repeat(x, 3, axis=2)  # Duplicate the single channel to all 3 RGB channels
+
+                imgs.append(x)
+            except Exception as e:
+                print(f"Error processing image {img_path}: {e}")
+                # Add a placeholder instead
+                imgs.append(np.zeros((224, 224, 3)))
+
+        batch = np.array(imgs)
+        batch = preprocess_input(batch)
+        features = model.predict(batch, verbose=0)
+        all_features.append(features)
+
+    if not all_features:
+        return np.array([])
+
+    # Combine all batches
+    all_features_array = np.vstack(all_features)
+
+    # Create result array with same length as input, with zeros for failed images
+    result = np.zeros((len(img_paths), all_features_array.shape[1]))
+
+    # Fill in the features for valid images
+    for idx, valid_idx in enumerate(valid_indices):
+        if idx < len(all_features_array):
+            result[valid_idx] = all_features_array[idx]
+
+    return result
 
 def rgb2flatPCA(img_paths: List[str], n_components: int = 256, img_size=(224, 224)):
     """
