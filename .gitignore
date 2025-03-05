@@ -6,3 +6,4 @@ data
 *.npy
 .venv
 venv
+__pycache__
