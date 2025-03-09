@@ -230,12 +230,14 @@ def rgb2flatPCA(img_paths: List[str], n_components: int = 256, img_size=(224, 22
     return X_reduced
 
 
-# Helper function to pre-train PCA on a large dataset
-
-
 def pretrain_pca(image_paths, n_components=256, img_size=(224, 224), batch_size=100):
     """Use IncrementalPCA to handle larger datasets with less memory"""
     print(f"Pre-training Incremental PCA with {len(image_paths)} images...")
+
+    # Ensure n_components is not greater than batch_size
+    if n_components > batch_size:
+        print(f"Reducing n_components from {n_components} to {batch_size} to match batch size.")
+        n_components = batch_size
 
     ipca = IncrementalPCA(n_components=n_components)
 
