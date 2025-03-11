@@ -15,6 +15,19 @@ _RESNET_MODEL = None
 _PCA_CACHE = {}
 
 
+def reg2emb_one_image(load_img)->np.ndarray:
+    """
+    Convert RGB image to embedding using ResNet50 model.
+    :param load_img: image that load with keras.preprocessing.image.load_img(path, target_size=(224, 224))
+    :return: Array of embeddings with shape (1, 2048)
+    """
+    model = get_resnet_model()
+    x = image.img_to_array(load_img)
+    x = np.expand_dims(x, axis=0)
+    x = preprocess_input(x)
+    features = model.predict(x, verbose=0)
+    return features
+
 def get_resnet_model():
     """
     Returns a cached ResNet50 model to avoid reloading it.
