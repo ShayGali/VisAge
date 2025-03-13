@@ -54,9 +54,9 @@ class VideoFrame(Frame):
         """Load all required ML models and encoders once at initialization"""
         try:
             # Using the model from ai.py, just verify it can be loaded
-            _ = load_model('comb_mlp_rgb')
+            _ = load_model('comb_softmax_rgb')
             self.models_loaded = True
-            print("ML model 'comb_mlp_rgb' loaded successfully")
+            print("ML model 'comb_softmax_rgb' loaded successfully")
         except Exception as e:
             self.models_loaded = False
             print(f"Error loading ML model: {str(e)}")
@@ -87,7 +87,7 @@ class VideoFrame(Frame):
             pil_img = pil_img.resize((224, 224), Image.LANCZOS)
             
             # Use predict_image from ai.py
-            result = predict_image('comb_mlp_rgb', pil_img)
+            result = predict_image('comb_softmax_rgb', pil_img)
             
             # Extract results
             age = result['age']

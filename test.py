@@ -39,43 +39,60 @@ def predict_image(model_name, image_path):
         # For scikit-learn models
         model = joblib.load(model_path)
     
-    # Load label encoder and scaler
+    # Load the label encoder
     combined_encoder = joblib.load(os.path.join('models', 'combined_encoder.pkl'))
-    combined_scaler = joblib.load(os.path.join('models', 'combined_scaler.pkl'))
     
-    # Extract features using rgb2emb
-    img = image.load_img(image_path, target_size=(224, 224))
-    features = reg2emb_one_image(img)
+    # Check if this is a CNN model that takes raw images
+    is_cnn_model = 'cnn' in model_name.lower()
     
-    # Preprocess features using the scaler
-    features_scaled = combined_scaler.transform(features)
-    
-    # Make prediction
-    is_keras_model = model_name.endswith('.h5')
-    
-    if is_keras_model:
-        # For Keras models
-        probs = model.predict(features_scaled)[0]
+    if is_cnn_model:
+        # For CNN models: process the image directly
+        img = image.load_img(image_path, target_size=(128, 128))  # Use 128x128 for CNN
+        img_array = image.img_to_array(img)
+        img_array = img_array / 255.0  # Rescale to [0,1]
+        img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+        
+        # Make prediction with CNN model
+        probs = model.predict(img_array)[0]
         predicted_class_idx = np.argmax(probs)
         confidence = float(probs[predicted_class_idx])
     else:
-        # For sklearn models
-        predicted_class_idx = model.predict(features_scaled)[0]
+        # Original processing for feature-based models
+        # Load scaler for feature-based models
+        combined_scaler = joblib.load(os.path.join('models', 'combined_scaler.pkl'))
         
-        # Get confidence (probability)
-        if hasattr(model, 'predict_proba'):
-            probs = model.predict_proba(features_scaled)[0]
+        # Extract features using rgb2emb
+        img = image.load_img(image_path, target_size=(224, 224))
+        features = reg2emb_one_image(img)
+        
+        # Preprocess features using the scaler
+        features_scaled = combined_scaler.transform(features)
+        
+        is_keras_model = model_name.endswith('.h5')
+        
+        if is_keras_model:
+            # For Keras models (MLP, etc.)
+            probs = model.predict(features_scaled)[0]
+            predicted_class_idx = np.argmax(probs)
             confidence = float(probs[predicted_class_idx])
         else:
-            # For models without probability estimates
-            confidence = None
+            # For sklearn models
+            predicted_class_idx = model.predict(features_scaled)[0]
             
+            # Get confidence (probability)
+            if hasattr(model, 'predict_proba'):
+                probs = model.predict_proba(features_scaled)[0]
+                confidence = float(probs[predicted_class_idx])
+            else:
+                # For models without probability estimates
+                confidence = None
+    
     # Get the class label
     predicted_class = combined_encoder.classes_[predicted_class_idx]
     age, gender = predicted_class.split('_')
     return {
         'age': age,
-        'gender':gender,
+        'gender': gender,
         'confidence': confidence,
         'class_index': int(predicted_class_idx)
     }
@@ -85,8 +102,9 @@ def predict_image(model_name, image_path):
 image_path = './imgs/mad.jpg'
 # Test with different models
 # result1 = predict_image('softmax_model_rgb.pkl', image_path)
-result1 = predict_image('mlp_model_rgb.h5', image_path)
-print(f"Softmax prediction: age={result1['age']}, prediction={result1['gender']} (Confidence: {result1['confidence']:.2f})")
+# result1 = predict_image('mlp_model_rgb.h5', image_path)
+result1 = predict_image('cnn_model_rgb.h5', image_path)
+print(f"Model prediction: age={result1['age']}, prediction={result1['gender']} (Confidence: {result1['confidence']:.2f})")
 
 # If you have other models:
 # result2 = predict_image('random_forest_model_rgb.pkl', image_path)
