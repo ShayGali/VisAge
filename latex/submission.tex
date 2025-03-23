@@ -10,6 +10,9 @@
 \usepackage{float}
 \usepackage{subcaption}
 
+\usepackage[style=numeric, sorting=ydnt]{biblatex}
+\addbibresource{references.bib}
+
 \title{Machine Learning - Final Project }
 \author{Michael Dadush 206917908 \\ Shay Gali 315202242}
 \date{March 2025}
@@ -21,6 +24,24 @@
 
 
 \section{Introduction}
+
+Gender and age classification in not controlled settings shows big challenges due to many imaging conditions and problems in the data. In our project, we deal with these issues by making a framework that includes data exploration, preprocessing, feature extraction, model training, and checking performance. All our code and implementation details can be seen on our github repository \cite{github_repo}.
+
+We start our project with deep data exploration to understand main characteristics and challenges of Adience Benchmark dataset. This first analysis is in the \texttt{data\_exploration.ipynb} notebook, which shows data distribution, imaging conditions, and what preprocessing we need. You can see notebook and follow our exploration by visiting \href{https://github.com/ShayGali/VisAge/blob/main/data_exploration.ipynb}{data\_exploration.ipynb}.
+
+This introduction part prepare for next detailed discussions about challenges and the strategies we use to overcome them, making sure we have good approach to solve the gender and age classification problem.
+
+After data exploration, we try several models we learn in our course, like Softmax regression, Support Vector Machines (SVM), and other machine learning methods. To make feature representation better, we try different image transformations like grayscale and RGB. Also, we use Principal Component Analysis (PCA) for dimensionality reduction, so we can check if compact representations improve classification performance. The classical models we implement are in the \texttt{old\_models} directory on GitHub: \href{https://github.com/ShayGali/VisAge/tree/main/old_models}{old\_models folder}.
+
+After we check individual models, we want to combine our findings by using multiple models trained on different image representations. We develop two pipelines: one for grayscale images and another for RGB images. These approaches are in separate notebooks:
+\begin{itemize}
+    \item \textbf{Grayscale Models:} We train various models on grayscale images and check their performance. The complete implementation is in \href{https://github.com/ShayGali/VisAge/blob/main/grayscale_models.ipynb}{grayscale\_models.ipynb}.
+    \item \textbf{RGB Models:} We do similar experiments on RGB images, comparing if color information give better classification accuracy. This notebook is at \href{https://github.com/ShayGali/VisAge/blob/main/rgb_models.ipynb}{rgb\_models.ipynb}.
+\end{itemize}
+
+With models trained and checked, we answer key research questions about gender and age classification. Our analysis and findings for first question are in \href{https://github.com/ShayGali/VisAge/blob/main/questions/q1.ipynb}{q1.ipynb}.
+
+To show practical use of our model, we create real-time camera application that predicts gender and age from live video. This application, in the \texttt{camera-viewer-app} folder, shows how model works in real situations. The source code for this application is at \href{https://github.com/ShayGali/VisAge/tree/main/camera-viewer-app}{camera-viewer-app}.
 
 \section{Description of the Database}
 We chose to work with the Adience Benchmark dataset for Gender and Age Classification\cite{adience_dataset}. This dataset has real-world images of faces, which makes it good for testing different machine learning methods. The dataset includes:
@@ -36,32 +57,31 @@ The dataset provides many labels for each data point, we used the followinglabel
 \section{Analysis of the Database}
 
 \subsection{Data Exploration and Preprocessing}
-
-Our exploratory analysis of the Adience Benchmark dataset revealed several key characteristics and pre-processing requirements:
+When we explore the Adience Benchmark dataset, we find several important characteristics and preprocessing needs:
 
 \begin{enumerate}
-    \item \textbf{Duplicate Directories}: An initial examination uncovered two directories named "faces" containing image files. Further investigation showed that one directory (containing 40 files) was a subset of the other (containing 168 files). We selected the comprehensive directory containing all 168 unique user folders for our analysis.
+    \item \textbf{Duplicate Directories}: At first look, we find two directories with name "faces" that contain image files. After we check more, we see that one directory (with 40 files) is just small part of the other one (with 168 files). We choose the big directory with all 168 user folders for our work.
     
-    \item \textbf{Data Organization}: The dataset follows a 5-fold cross-validation structure, with data distributed across files named "fold\_0\_data.txt" through "fold\_4\_data.txt". Folds 0-3 (containing 15,554 entries) were allocated for training, while fold 4 (3,816 entries) was reserved for testing, resulting in a total of 19,370 entries before preprocessing.
+    \item \textbf{Data Organization}: The dataset is organize in 5-fold cross-validation way, with data in files named "fold\_0\_data.txt" to "fold\_4\_data.txt". We use Folds 0-3 (with 15,554 entries) for training, and fold 4 (with 3,816 entries) for testing, so totally we have 19,370 entries before we do preprocessing.
     
-    \item \textbf{Missing Values}: The raw dataset contained some entries with missing values. After removing these entries, we retained 18,551 complete records, indicating a relatively small proportion (approximately 4.2\%) of incomplete data.
+    \item \textbf{Missing Values}: The original dataset have some entries with missing values. After we remove these entries, we get 18,551 complete records, which mean only small part (about 4.2\%) of data is incomplete.
 \end{enumerate}
 
-\subsection{Age Classification Standardization}
 
-One of the significant challenges in working with the Adience dataset was the inconsistent representation of age information:
+\subsection{Age Classification Standardization}
+One of big challenges when we work with Adience dataset was the not consistent representation of age information:
 
 \begin{enumerate}
-    \item \textbf{Overlapping Age Ranges}: The dataset contained multiple overlapping age ranges that required consolidation:
+    \item \textbf{Overlapping Age Ranges}: Dataset had many overlapping age ranges that we need to fix:
     \begin{itemize}
-        \item The ranges (38, 42), (38, 43), and (38, 48) were merged into (38, 43) based on frequency analysis (46, 2293, and 6 instances respectively)
-        \item An anomalous (8, 23) age range with only one instance was removed
-        \item The less common (27, 32) range (77 instances) was merged into the more frequent (25, 32) range (4,953 instances)
+        \item The ranges (38, 42), (38, 43), and (38, 48) we merge into (38, 43) based on frequency analysis (46, 2293, and 6 instances)
+        \item One weird (8, 23) age range with only one instance we remove
+        \item The less common (27, 32) range (77 instances) we merge into more frequent (25, 32) range (4,953 instances)
     \end{itemize}
     
-    \item \textbf{Single Age Values}: The dataset contained 1,094 entries with single age values rather than ranges. We mapped these to appropriate age ranges based on proximity:
+    \item \textbf{Single Age Values}: Dataset had 1,094 entries with single age values not ranges. We map these to right age ranges based on how close they are:
     \begin{itemize}
-        \item Ages 2, 3 → (0, 2), (4, 6) respectively
+        \item Ages 2, 3 → (0, 2), (4, 6)
         \item Age 13 → (8, 12)
         \item Ages 22, 23, 29, 34 → (25, 32)
         \item Ages 35, 36, 42 → (38, 43)
@@ -69,12 +89,10 @@ One of the significant challenges in working with the Adience dataset was the in
         \item Ages 57, 58 → (60, 100)
     \end{itemize}
     
-    This standardization resulted in a consistent set of eight age ranges: (0, 2), (4, 6), (8, 12), (15, 20), (25, 32), (38, 43), (48, 53), and (60, 100).
+    This standardization give us consistent set of eight age ranges: (0, 2), (4, 6), (8, 12), (15, 20), (25, 32), (38, 43), (48, 53), and (60, 100).
 \end{enumerate}
 
 \subsection{Gender Distribution Analysis}
-
-
 \begin{itemize}
     \item Female: 9,332 samples (50.3\%)
     \item Male: 9,216 samples (49.7\%)
@@ -138,8 +156,7 @@ This combined analysis provides valuable insights into potential intersectional 
 \end{figure}
 
 \subsection{Data Partitioning and Integrity}
-
-To ensure proper evaluation methodology, we split the dataset into three partitions:
+To make sure we have good evaluation way, we split the dataset into three parts:
 
 \begin{itemize}
     \item Training set: 11,850 samples (63.9\%)
@@ -147,8 +164,10 @@ To ensure proper evaluation methodology, we split the dataset into three partiti
     \item Test set: 3,729 samples (20.1\%)
 \end{itemize}
 
-We rigorously verified that no overlap existed between these sets by checking the intersection between training and testing data based on image identifiers and face IDs. This verification confirmed complete separation, which is crucial for unbiased performance evaluation.
+We check very carefully that no overlap exist between these sets by checking if any image identifiers and face IDs appear in more than one set. This check confirm complete separation, which is very important for fair performance evaluation.
 
+
+\newpage
 \section*{Tools used in the project}
 
 The following tools and techniques were used in this project :
@@ -160,8 +179,8 @@ The following tools and techniques were used in this project :
     \item Adaboost
     \item KNN
     \item Multi-layer Perceptron (MLP)
-    \item PCA 
     \item ResNet50- as feature extractor and as a model
+    \item PCA - as a feature extractor
 \end{itemize}
 
 \newpage
@@ -169,7 +188,7 @@ The following tools and techniques were used in this project :
 
 \subsection{Feature Extraction}
 
-For most of our models, we used pre-trained networks to extract meaningful features from face images rather than training directly on raw pixel values. This approach, known as transfer learning, leverages knowledge from models pre-trained on large datasets.
+For most of our models, we used pre-trained networks to extract meaningful features from face images rather than training directly on raw pixel values.
 
 \begin{itemize}
     \item \textbf{ResNet50 Feature Extraction}: We utilized the ResNet50 architecture pre-trained on ImageNet to transform raw images into 2048-dimensional feature vectors. This was implemented for both RGB and grayscale processing pipelines.
@@ -181,32 +200,32 @@ For most of our models, we used pre-trained networks to extract meaningful featu
 
 We also try PCA as a feature extraction method, but the results were not as good as the ResNet50 feature extraction method, so we decided to use the ResNet50 feature extraction method for our models.
 
-\subsection{Data Preprocessing}
 
-After feature extraction, several preprocessing steps were applied to prepare the data for model training:
+\subsection{Data Preprocessing}
+After feature extraction, we did several preprocessing steps to prepare the data for model training:
 
 \begin{itemize}
-    \item \textbf{Feature Standardization}: Features were standardized to have zero mean and unit variance using scikit-learn's StandardScaler, fitted on the training set and applied to both validation and test sets.
+    \item \textbf{Feature Standardization}: We standardize features to have zero mean and unit variance using scikit-learn's StandardScaler, which we fit on training set and apply to validation and test sets.
     
-    \item \textbf{Label Encoding}: The combined age and gender labels (e.g., "(25, 32)\_f" for a female in the 25-32 age range) were encoded into numeric indices using LabelEncoder.
+    \item \textbf{Label Encoding}: We encode the combined age and gender labels (e.g., "(25, 32)\_f" for female in 25-32 age range) into numeric indices using LabelEncoder.
     
-    \item \textbf{Class Weights}: To address class imbalance in the dataset, we computed balanced class weights inversely proportional to class frequencies, ensuring that minority classes received appropriate attention during training.
+    \item \textbf{Class Weights}: To fix class imbalance in dataset, we compute balanced class weights that are inverse to class frequencies, so minority classes get right attention during training.
 \end{itemize}
 
 \subsection{Model Training Approaches}
 
-We trained two parallel sets of models—one using RGB features and another using grayscale features—to compare their effectiveness:
+We train two parallel sets of models—one with RGB features and another with grayscale features—to compare which is better:
 
 \begin{itemize}
-    \item \textbf{Traditional Machine Learning}: For Softmax (Logistic Regression), SVM, Random Forest, AdaBoost, and KNN models, we used scikit-learn implementations.
+    \item \textbf{Traditional Machine Learning}: For Softmax (Logistic Regression), SVM, Random Forest, AdaBoost, and KNN models, we use scikit-learn implementations.
     
-    \item \textbf{Neural Network Models}: For MLP model, we implemented architectures in TensorFlow with dropout and batch normalization to prevent overfitting. Training used the Adam optimizer with categorical cross-entropy loss and early stopping based on validation set performance.
+    \item \textbf{Neural Network Models}: For MLP model, we implement architectures in TensorFlow with dropout and batch normalization to stop overfitting. Training use Adam optimizer with categorical cross-entropy loss and early stopping based on validation set performance.
     
-    \item \textbf{CNN Training}: These models were trained directly on image data rather than on extracted features.
+    \item \textbf{CNN Training}: These models we train directly on image data instead of extracted features.
 \end{itemize}
 
-\subsection{Evaluation Methodology}
 
+\subsection{Evaluation Methodology}
 To ensure robust evaluation of model performance:
 
 \begin{itemize}
@@ -218,6 +237,7 @@ To ensure robust evaluation of model performance:
 \end{itemize}
 
 All models were saved after training for later deployment and testing in real-world scenarios, which informed our analysis of practical applications detailed in the research questions section.
+
 
 \newpage
 \section{Model Performance}
@@ -255,13 +275,12 @@ Table \ref{tab:Grayscale scores} summarizes the accuracy results of different mo
         CNN & 0.4371 & 0.3153 & \parbox[t]{6cm}{this model have overffiting - it predict most of the data to the (25,32) age group.} \\
         \bottomrule
     \end{tabular}
-    \caption{Train, Test, and Validation Accuracy of Various Models with grayscale method}
+    \caption{Train and Test Accuracy of Various Models with grayscale method}
     \label{tab:Grayscale scores}
 \end{table}
 
 \subsubsection{Grayscale Model Confusion Matrices}
-
-The following confusion matrices illustrate the classification patterns for each grayscale model, showing where models tend to make correct predictions (diagonal) versus misclassifications (off-diagonal).
+Here are confusion matrices for grayscale models, they show where model predictions are right (on diagonal) and where they are wrong (not on diagonal).
 
 \begin{figure}[H]
     \centering
@@ -360,7 +379,7 @@ The following confusion matrices illustrate the classification patterns for each
 \subsubsection{RGB Model Training and Testing Accuracy}
 Table \ref{tab:RGB scores} summarizes the accuracy results of different models on the dataset using RGB image. (we dont add a Note column because the results are similar to the grayscale image)
 
-\begin{table}[htbp] % Allow flexibility in positioning
+\begin{table}[htbp]
     \centering
     \begin{tabular}{lcc}
         \toprule
@@ -393,8 +412,7 @@ Table \ref{tab:RGB scores} summarizes the accuracy results of different models o
 \FloatBarrier 
 
 \subsubsection{RGB Model Confusion Matrices}
-
-The following confusion matrices illustrate the classification patterns for each rgb model, showing where models tend to make correct predictions (diagonal) versus misclassifications (off-diagonal).
+Here are confusion matrices for rgb models, they show where model predictions are right (on diagonal) and where they are wrong (not on diagonal).
 
 \begin{figure}[H]
     \centering
@@ -485,89 +503,125 @@ The following confusion matrices illustrate the classification patterns for each
     \caption{Taining history for MLP and CNN models (rgb)}
     \label{fig:rgb_training_history}
 \end{figure}
-
 \newpage
 \subsection{Analysis of Results}
 
-Our experimental results reveal several important patterns across different model architectures and input processing methods. This section provides a detailed analysis of these findings.
+Our results show important patterns across different models and processing methods. Here we analyze what we found.
 
 \subsubsection{General Performance Trends}
 
-Overall, models trained on RGB features slightly outperformed their grayscale counterparts, suggesting that color information provides valuable signals for age and gender classification. The best-performing model was the MLP with RGB features (34.78\% test accuracy), while the poorest performer was the SVM (17.51\% test accuracy on RGB features).
+We see that models trained on RGB features perform little better than grayscale ones, which mean color information helps for age and gender classification. The best model was MLP with RGB features (34.78\% test accuracy), and worst was SVM (17.51\% test accuracy on RGB).
 
-The relatively modest test accuracies (17.51\% to 34.78\%) reflect the inherent difficulty of the 16-class joint age-gender classification task. For context, random guessing would yield approximately 6.25\% accuracy, so our models provide 3-5 times better performance than chance.
+The test accuracies (17.51\% to 34.78\%) are not very high because this is hard task with 16 classes (age+gender). Random guessing would give about 6.25\% accuracy, so our models are 3-5 times better than random.
 
 \subsubsection{Model-Specific Analysis}
 
 \paragraph{Softmax Regression:} 
-Softmax achieved reasonable performance (32.37\% test accuracy with RGB features) despite being one of the simplest models. This suggests that the decision boundaries in our feature space have some linear separability. The model's confusion matrix showed it performed best on majority classes like (0, 2)\_m and (25, 32)\_m, with most errors occurring between adjacent age groups rather than gender misclassification.
+Softmax got good performance (32.37\% test accuracy with RGB) even though it is simple model. This mean our feature space have some linear separability. The confusion matrix show it was best on big classes like (0, 2)\_m and (25, 32)\_m, with most errors between close age groups not gender mistakes.
 
 \paragraph{Support Vector Machine (SVM):}
-SVM performed notably poorly (17.51\% test accuracy), suggesting that the complex, high-dimensional feature space was not amenable to the approach of finding optimal hyperplanes. The SVM predominantly predicted the (25, 32)\_f class—the most common in our dataset—indicating a strong bias toward majority classes despite our class weighting efforts.
+SVM perform badly (17.51\% test accuracy), which suggest the high-dimensional feature space was not good for finding hyperplanes. SVM mostly predict the (25, 32)\_f class—our biggest class—showing it bias toward majority classes even with class weighting.
 
 \paragraph{Random Forest:}
-Random Forest models performed well (32.18\% test accuracy with RGB), showing their ability to capture complex patterns through ensemble decision trees. The model effectively learned the feature importance patterns from ResNet50 embeddings, with depth-limited trees (max\_depth=10) helping to control overfitting. However, like most models, it struggled with underrepresented classes.
+Random Forest perform well (32.18\% test accuracy with RGB), showing it can catch complex patterns with many decision trees. The model learn feature importance patterns from ResNet50 embeddings, and depth-limited trees (max\_depth=10) help control overfitting. But like other models, it have trouble with small classes.
 
 \paragraph{AdaBoost:}
-AdaBoost showed moderate performance (31.62\% with RGB), focusing its learning on difficult-to-classify examples. This approach was particularly effective for our dataset with imbalanced classes, as evidenced by its relatively smaller gap between training and test accuracy compared to Random Forest.
+AdaBoost show medium performance (31.62\% with RGB), focusing on hard-to-classify examples. This work well for our imbalanced dataset, and we see smaller gap between train and test accuracy compared to Random Forest.
 
 \paragraph{K-Nearest Neighbors (KNN):}
-KNN demonstrated clear patterns of overfitting, especially at lower k values. With k=1, the model achieved near-perfect training accuracy (99.98\%) but poor test performance (19.17\%), exemplifying "memorization" rather than generalization. As k increased, both overfitting and overall accuracy decreased, with k=9 showing the best test performance among KNN models. This confirms that allowing more neighbors to vote helps smooth decision boundaries in high-dimensional spaces.
+KNN show clear overfitting, especially with small k. With k=1, model got almost perfect training accuracy (99.98\%) but bad test performance (19.17%), which mean it just "memorize" data not generalize. As k get bigger, both overfitting and accuracy go down, with k=9 showing best test performance among KNN models. This show that more neighbors voting help smooth decision boundaries in high-dimensional spaces.
 
 \paragraph{Multi-Layer Perceptron (MLP):}
-The MLP achieved the best overall performance (34.78\% test accuracy with RGB), demonstrating the advantage of deep learning architectures in capturing complex patterns. The network's combination of dense layers with dropout (0.5) and batch normalization effectively controlled overfitting while maintaining representational power. Early stopping further enhanced generalization by preventing overtraining.
+MLP got best performance (34.78\% test accuracy with RGB), showing deep learning better for complex patterns. The dense layers with dropout (0.5) and batch normalization control overfitting while keeping good representation. Early stopping also help generalization by stopping training at right time.
 
 \paragraph{Convolutional Neural Network (CNN):}
-The CNN performed well (32.98\% with RGB) despite being trained directly on raw image data rather than pre-extracted features. This indicates that end-to-end learning can match transfer learning approaches on this task. However, the narrower gap between training (47.18\%) and testing (32.98\%) accuracy suggests that CNN architecture inherently provides some regularization compared to other models.
+CNN perform well (32.98\% with RGB) even when trained on raw images not extracted features. This show end-to-end learning can be good as transfer learning for this task. The smaller gap between training (47.18\%) and testing (32.98\%) accuracy suggest CNN architecture have some natural regularization compared to other models.
 
 \subsubsection{Overfitting Analysis}
 
-All models exhibited some degree of overfitting, visible in the gap between training and test accuracy. This can be attributed to several factors:
+All models had some overfitting, we see in gap between training and test accuracy. This happen because:
 
 \begin{itemize}
-    \item \textbf{Limited data diversity:} Despite having thousands of images, the number of samples per class was insufficient for reliable generalization across all 16 classes.
+    \item \textbf{Limited data diversity:} Even with thousands of images, we don't have enough samples per class for good generalization across all 16 classes.
     
-    \item \textbf{Class imbalance:} The uneven distribution of samples across age and gender categories made it difficult for models to learn accurate representations of minority classes.
+    \item \textbf{Class imbalance:} The uneven distribution of samples across age and gender categories make it hard for models to learn good representations of small classes.
     
-    \item \textbf{High-dimensional feature space:} The 2048-dimensional ResNet50 features created a vast feature space relative to the number of training examples, making overfitting more likely.
+    \item \textbf{High-dimensional feature space:} The 2048-dimensional ResNet50 features create very big feature space compared to training examples, which make overfitting more likely.
 \end{itemize}
 
 \subsubsection{RGB vs. Grayscale Performance}
 
-RGB models consistently outperformed their grayscale counterparts, though the margin was modest (typically 1-3 percentage points). This suggests that color information provides useful but not essential signals for age-gender classification. The color information may help with subtle cues like skin tone variations associated with aging or cosmetic differences between genders.
+RGB models always perform better than grayscale, but not by much (usually 1-3 percentage points). This mean color information is helpful but not essential for age-gender classification. Color information maybe help with things like skin tone changes with age or makeup differences between genders.
 
 \subsubsection{Error Pattern Analysis}
 
-Confusion matrices revealed consistent error patterns across models:
+Confusion matrices show consistent error patterns in all models:
 
 \begin{itemize}
-    \item Most misclassifications occurred between adjacent age groups (e.g., (25, 32) and (38, 43)), highlighting the difficulty in precisely categorizing ages into distinct groups based on visual features alone.
+    \item Most wrong predictions happen between close age groups (like (25, 32) and (38, 43)), which show it hard to put ages in exact groups based only on face features.
     
-    \item Gender misclassification was less common than age group errors, indicating that gender features are more distinct than age features in facial images.
+    \item Gender mistakes happen less than age group mistakes, which mean gender features are more clear than age features in face images.
     
-    \item Certain age-gender combinations, particularly those with fewer training examples, showed consistently poorer classification results across all models.
+    \item Some age-gender combinations, especially ones with few training examples, always get poor classification results in all models.
 \end{itemize}
 
-This analysis suggests that while current models provide valuable age-gender classification capabilities, there remains significant room for improvement through more sophisticated architectures, data augmentation, and training strategies tailored to address the specific challenges of this multi-class classification problem.
-
-
-
-
+This analysis show that while our models give useful age-gender classification, there is still lot of room for improvement with better architectures, data augmentation, and training strategies for this multi-class problem.
 
 \newpage
 \section{Research Questions}
 
-\subsection*{Question 1: How Models Work with Different Images}
+\subsection*{Question 1: Different Types of People}
 \begin{itemize}[leftmargin=1.6cm]
-    \item What happens when images are not clear or blurry?
-    \item Do facial expressions (such as smiling or not smiling) affect the results?
+    \item Does it work the same for people from different places?
+    \item Can we use the same model everywhere or do we need different ones?
+\end{itemize}
+\subsection*{Answer to Question 1}  
+To explore these questions, we used the UTKFace dataset \cite{UTKFace_dataset}, which contains images of people from diverse ethnic backgrounds with labeled age, gender, and ethnicity information. 
+Our analysis aimed to determine whether the model performs consistently between different groups.
+
+\begin{enumerate}
+    \item \textbf{Image Path Construction}: Image paths were constructed to facilitate loading - the dataset was diffrent, and the way that we ajust the data to work with our model can see in \href{https://github.com/ShayGali/VisAge/blob/main/questions/q1.ipynb}{q1.ipynb}.
+    \item \textbf{Label Encoding}: Age and gender were combined and encoded for model training.
+\end{enumerate}
+
+A pie chart of race distribution illustrates the diversity within the dataset. Age and gender distributions were plotted for each racial group to provide context for analysis.
+
+Multiple models, including CNNs and various machine learning models, were loaded for evaluation:
+\begin{itemize}
+    \item \textbf{CNN Models}: Trained on RGB images and grayscale images.
+    \item \textbf{Sklearn Models}: Includes classifiers like AdaBoost, KNN, Random Forest, Softmax, and SVM.
 \end{itemize}
 
-\subsection*{Answer Question 1}
-To investigate the impact of facial expressions on the predictions of the model,
-we examined four different emotional states: smiling, serious, mad and regular. 
-Our analysis revealed that all models produced consistent predictions in these expressions,
-indicating that facial expressions do not significantly influence the results.
+Preprocessing of both RGB and grayscale images was performed. Features were stored in \texttt{.npy} files to prevent redundant processing.
+
+Models were evaluated across different racial groups, with results summarized as follows:
+
+\textbf{Model Accuracy by Race}
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|c|c|c|c|c|c|}
+    \hline
+    \textbf{Model} & \textbf{White} & \textbf{Black} & \textbf{Asian} & \textbf{Indian} & \textbf{Other} \\
+    \hline
+    CNN & 0.17 & 0.11 & 0.17 & 0.14 & 0.22 \\
+    \hline
+    AdaBoost & 0.18 & 0.13 & 0.17 & 0.15 & 0.20 \\
+    \hline
+    KNN & 0.17 & 0.15 & 0.19 & 0.14 & 0.17 \\
+    \hline
+    Random Forest & 0.19 & 0.17 & 0.20 & 0.17 & 0.23 \\
+    \hline
+    Softmax & 0.23 & 0.18 & 0.25 & 0.22 & 0.23 \\
+    \hline
+    SVM & 0.07 & 0.07 & 0.07 & 0.06 & 0.08 \\
+    \hline
+    \end{tabular}
+    \caption{Model accuracy across different racial groups.}
+    \label{tab:accuracy_race}
+\end{table}
+
+The accuracy rates suggest variability in model performance across different races, which could indicate biases in model training or dataset representation. Models tended to perform better on the "Other" category, suggesting that there is a more even distribution of features in this group, or it could be less represented in some training aspects. But we can see that the prediction on "Black" was the worst, which could indicate that the model was not trained well on this group.
 
 
 \subsection*{Question 2: Can We Use This in Real Life?}
@@ -593,190 +647,163 @@ Our results show that most models perform well in real-time scenarios, even with
 From the analysis of the models, we can see that the model with the less overfitting, 
 and when the model got wrong predictions, it was not by much (the most of the error in the confusion matrix was in the adjacent age group), it was the MLP model.
 
-\subsection*{Question 4: Different Types of People}
+\subsection*{Question 4: How Models Work with Different Images}
 \begin{itemize}[leftmargin=1.6cm]
-    \item Does it work the same for people from different places?
-    \item Can we use the same model everywhere or do we need different ones?
+    \item What happens when images are not clear or blurry?
+    \item Do facial expressions (such as smiling or not smiling) affect the results?
 \end{itemize}
 
-\subsection*{Answer to Question 4}  
-To explore these questions, we used the UTKFace dataset, which contains images of people from diverse ethnic backgrounds with labeled age, gender, and ethnicity information. 
-Our analysis aimed to determine whether the model performs consistently between different groups.  
+\subsection*{Answer Question 4}
+To investigate the impact of facial expressions on the predictions of the model,
+we examined four different emotional states: smiling, serious, mad and regular. 
+Our analysis revealed that all models produced consistent predictions in these expressions,
+indicating that facial expressions do not significantly influence the results.\\
+Also from the real-time analysis, we can see that the model works well with different images, even with blurry images, which makes it suitable for real-world applications.
 
 
 \newpage
 \section{Challenges in Gender and Age Classification using Adience Benchmark Dataset}
-
 \subsection{Data Structure and Organization Challenges}
-The initial exploration of the Adience Benchmark dataset revealed several structural challenges:
+When we explore the Adience Benchmark dataset, we find several structure problems:
 
 \begin{itemize}
-    \item \textbf{Redundant directory structure:} The dataset contained duplicate \texttt{faces} folders with overlapping content, requiring careful analysis to determine which directory to use without losing data.
+    \item \textbf{Duplicate folders:} The dataset have two \texttt{faces} folders with same content, so we need to check which folder to use without losing important data.
 
-    \item \textbf{Inconsistent file organization:} Files were distributed across multiple fold directories, necessitating custom parsing logic to consolidate the dataset properly.
+    \item \textbf{Files in many places:} Files were spread in many different fold directories, so we need special code to combine all dataset together.
 
-    \item \textbf{Maintaining subject independence:} Ensuring that images from the same user didn't appear in both training and testing sets required tracking the \texttt{user\_id} field across fold splits.
+    \item \textbf{Keeping people separate:} We need to make sure images from same person don't appear in both training and testing sets by checking the \texttt{user\_id} across different folds.
 \end{itemize}
 
 \subsection{Data Quality and Preprocessing Challenges}
-The dataset presented significant quality and preprocessing challenges that required careful handling:
+The dataset have many quality and preprocessing problems we need to fix:
 
 \begin{itemize}
-    \item \textbf{Inconsistent age group labeling:} The age labels included both specific ages (e.g., '22', '35', '58') and age ranges (e.g., '(0, 2)', '(25, 32)'), requiring a standardization process to map individual ages to appropriate ranges.
+    \item \textbf{Age labels not consistent:} Some labels have specific ages (like '22', '35', '58') and some have age ranges (like '(0, 2)', '(25, 32)'), so we need process to put single ages into right ranges.
 
-    \item \textbf{Overlapping age ranges:} Several overlapping age groups existed in the data:
+    \item \textbf{Age ranges that overlap:} We find many overlapping age groups:
     \begin{itemize}
-        \item Multiple variants of the same general range: (38, 42), (38, 43), and (38, 48)
-        \item Similar ranges with different boundaries: (25, 32) and (27, 32)
-        \item Conflicting categorizations: (8, 12), (8, 23), and (15, 20)
+        \item Same range with different numbers: (38, 42), (38, 43), and (38, 48)
+        \item Similar ranges with different start/end: (25, 32) and (27, 32)
+        \item Ranges that don't make sense together: (8, 12), (8, 23), and (15, 20)
     \end{itemize}
 
-    \item \textbf{Undefined gender categories:} A significant portion of images (particularly in the (0, 2) age range) had undefined gender labels ('u'), requiring either removal or inferential assignment.
+    \item \textbf{Missing gender labels:} Many images (especially in (0, 2) age range) have 'u' for gender, so we need to remove them or guess gender.
 
-    \item \textbf{Missing data:} Several records contained NaN values that needed to be handled through appropriate imputation or removal strategies.
+    \item \textbf{Missing data:} Some records have NaN values that we need to handle by filling in values or removing them.
 \end{itemize}
 
 \subsection{Class Imbalance Challenges}
-Analysis of the dataset revealed significant imbalances across different dimensions:
+When we check the dataset, we find big problems with balance:
 
 \begin{itemize}
-    \item \textbf{Age distribution skew:} The (25, 32) age range was heavily overrepresented (comprising 5391 samples), while other ranges like (60, 100) were underrepresented (only 896 samples).
+    \item \textbf{Age groups not equal:} The (25, 32) age range had too many samples (5391), but other ranges like (60, 100) had very few (just 896).
 
-    \item \textbf{Gender distribution variability:} Within specific age groups, gender distribution was uneven, with certain age-gender combinations having significantly fewer samples.
+    \item \textbf{Gender not balanced:} In some age groups, one gender has much more samples than other gender.
 
-    \item \textbf{Disproportionate unknown gender labels:} The vast majority of unspecified gender labels ('u') appeared in the (0, 2) age range, creating a potential bias when handling these samples.
+    \item \textbf{Unknown gender problem:} Most images with 'u' gender label were in (0, 2) age range, this make bias in the data.
 \end{itemize}
 
 \subsection{Feature Engineering and Extraction Challenges}
-Converting the raw image data into meaningful feature representations presented several challenges:
+When we try to convert images to features, we face many problems:
 
 \begin{itemize}
-    \item \textbf{Computational complexity of ResNet50:} Using a deep architecture like ResNet50 required significant computational resources and careful optimization for the specific classification task.
+    \item \textbf{ResNet50 is too big:} Using ResNet50 need a lot of computer power and we need to optimize it for our task.
 
-    \item \textbf{Face localization and normalization:} The dataset provided bounding box coordinates (\texttt{x}, \texttt{y}, \texttt{dx}, \texttt{dy}) and orientation data (\texttt{tilt\_ang}, \texttt{fiducial\_yaw\_angle}), but transforming these into properly aligned face images required complex preprocessing.
-
-    \item \textbf{Balancing feature richness and model efficiency:} Determining the optimal dimensionality and representation of features extracted from ResNet50 to balance discriminative power with computational efficiency.
+    \item \textbf{Features too many or too few:} It's hard to decide how many features from ResNet50 is good - too many make slow model, too few lose information.
 \end{itemize}
 
-\subsection{Overfitting and Generalization Challenges}
-Working with deep neural networks on the Adience dataset presented significant overfitting challenges:
+\subsection{Early Stopping Problems}
+When we try to use early stopping to stop overfitting, we face many challenges:
 
 \begin{itemize}
-    \item \textbf{Limited sample diversity:} Despite having thousands of images, the diversity of faces, particularly in underrepresented age groups, was insufficient to prevent the model from memorizing specific examples rather than learning generalizable patterns.
-
-    \item \textbf{High model capacity versus dataset size:} The ResNet50 architecture contains millions of parameters, creating a high risk of overfitting when trained on a relatively small dataset like Adience.
-
-    \item \textbf{Domain-specific feature learning:} Facial features relevant for age and gender classification needed to be learned despite variations in lighting, pose, and image quality, requiring the model to ignore irrelevant patterns that might lead to memorization.
-
-    \item \textbf{Monitoring overfitting signals:} Determining reliable indicators of overfitting required careful observation of:
+    \item \textbf{Which metric to check:} Hard to choose right metrics to watch:
     \begin{itemize}
-        \item Diverging training and validation loss curves
-        \item Stagnating or decreasing validation accuracy despite improving training accuracy
-        \item Performance discrepancies across different demographic subgroups
-    \end{itemize}
-\end{itemize}
-
-\subsection{Early Stopping Implementation Challenges}
-Implementing effective early stopping strategies to prevent overfitting introduced additional complexities:
-
-\begin{itemize}
-    \item \textbf{Metric selection complexity:} Determining the most appropriate validation metric to monitor posed challenges:
-    \begin{itemize}
-        \item Single metric for multi-task learning: Balancing the importance of age versus gender accuracy
-        \item Validation loss versus accuracy trade-offs: Loss might continue decreasing while accuracy plateaus
-        \item Class-weighted metrics: Considering whether to weight metrics to account for class imbalance
+        \item Should we watch both age and gender accuracy or just one?
+        \item Sometimes loss goes down but accuracy not improve
+        \item Not sure if we need special metrics for imbalanced classes
     \end{itemize}
 
-    \item \textbf{Patience parameter tuning:} Determining the optimal patience value (number of epochs to wait for improvement before stopping) required experimentation:
+    \item \textbf{Patience value problem:} Hard to choose how many epochs to wait before stopping:
     \begin{itemize}
-        \item Too low: Risk of stopping before finding optimal weights
-        \item Too high: Computational inefficiency and potential overfitting
+        \item Too little waiting: Might stop too early before model learn good weights
+        \item Too much waiting: Waste time and might overfit
     \end{itemize}
 
-    \item \textbf{Learning rate scheduling interaction:} Coordinating early stopping with learning rate reduction strategies added complexity:
+    \item \textbf{Learning rate changes:} Hard to use with learning rate scheduler:
     \begin{itemize}
-        \item Distinguishing between temporary plateaus that could be overcome by learning rate adjustments versus genuine convergence
-        \item Determining whether to reset patience after learning rate changes
+        \item Not sure if model stuck or just need learning rate change
+        \item Should we reset patience after change learning rate?
     \end{itemize}
 
-    \item \textbf{Checkpoint management:} Implementing model checkpointing alongside early stopping required decisions about:
+    \item \textbf{Saving models:} Need to decide about checkpoints:
     \begin{itemize}
-        \item Storage requirements for saving multiple model states
-        \item Criteria for determining the "best" model (lowest validation loss versus highest validation accuracy)
-        \item Restoration strategy when training terminates
+        \item Need lot of disk space to save models during training
+        \item Not sure if save model with best validation loss or best accuracy
+        \item How to load best model when training finish
     \end{itemize}
 
-    \item \textbf{Resource allocation planning:} Early stopping directly impacted computational resource planning:
+    \item \textbf{Planning compute time:} Hard to know how long training will take:
     \begin{itemize}
-        \item Difficulty in estimating total training time due to variable convergence rates
-        \item Balancing between thorough hyperparameter exploration and efficient resource utilization
+        \item Different models stop at different times
+        \item Need balance between trying many parameters and saving time
     \end{itemize}
 \end{itemize}
 
-\subsection{Multi-Label Classification Complexity}
-Handling the joint prediction of age and gender introduced additional complexity:
+\subsection{Combined Age-Gender Prediction Problems}
+Predicting both age and gender together was hard:
 
 \begin{itemize}
-    \item \textbf{Decision on problem formulation:} Determining whether to treat the task as:
+    \item \textbf{How to setup problem:} We need to decide:
     \begin{itemize}
-        \item Two separate classification problems (independent age and gender models)
-        \item A single multi-class problem with combined age-gender categories (as suggested by the \texttt{age\_gender} column creation)
-        \item A multi-task learning problem with shared representations
+        \item Make two separate models (one for age, one for gender)
+        \item Make one model that predicts combined age-gender classes
+        \item Make one model with shared features but separate outputs
+        \item From our observation, the method that work the best for us was to make one model that predicts in combined lable.
     \end{itemize}
 
-    \item \textbf{Loss function design:} Balancing the contribution of age and gender classification errors when using a joint model.
 
-    \item \textbf{Performance evaluation complexity:} Defining appropriate metrics that reflect both age and gender classification performance.
+
+    \item \textbf{Loss function problems:} Hard to balance how much age errors and gender errors matter.
+
+    \item \textbf{Evaluating results:} Need special way to measure if model good at both age and gender.
 \end{itemize}
 
-\subsection{Training and Validation Strategy Challenges}
-Establishing a robust training and evaluation framework presented several challenges:
+\subsection{Training and Testing Split Problems}
+Making good train and test splits had many problems:
 
 \begin{itemize}
-    \item \textbf{Split methodology selection:} The dataset came with predefined folds, but required additional splitting for validation, raising questions about the most appropriate approach.
+    \item \textbf{How to split data:} Dataset already had folds, but we need validation set too.
 
-    \item \textbf{Ensuring no data leakage:} Verification was needed to ensure no overlap between train, validation, and test sets, particularly concerning images from the same subjects.
+    \item \textbf{No data leaking:} Need make sure same person not in both train and test set.
 
-    \item \textbf{Managing fold information:} The original dataset structure included fold-specific information that needed to be preserved or appropriately transformed when creating the final training splits.
+    \item \textbf{Keeping fold info:} Need track which images come from which original folds.
 \end{itemize}
 
-\subsection{Ethical and Representational Challenges}
-Working with demographic data raised important ethical considerations:
-
-\begin{itemize}
-    \item \textbf{Inferential gender assignment:} The decision to assign all unknown genders in the (0, 2) age range as male introduces potential bias in the model.
-
-    \item \textbf{Age boundary ambiguity:} The overlap and inconsistency in age ranges raises questions about the certainty of predictions, particularly near boundary cases.
-
-    \item \textbf{Demographic representation concerns:} The dataset's imbalances may lead to models that perform better for certain demographic groups than others, raising fairness concerns.
-\end{itemize}
 
 \newpage
-
 \section{Real time application}
-As mentioned in the research questions, we built a face recognition system that detects faces in real-time and predicts the age and gender of the person.
-The system uses the best model we found in our analysis - the MLP model with RGB features.
+We make camera application that can detect faces and predict age and gender in real time.
+We use our best model - MLP with RGB features - for this app.
 \\
-The app was build using the OpenCV library for face detection and the TensorFlow library for the model prediction, and Tkinter for the GUI.
+We build this app with OpenCV for finding faces, TensorFlow for running our model, and Tkinter for making simple window interface.
 \\
 \subsection{How the app works}
 
 \begin{itemize}
-    \item The app opens a window with a live video feed from the camera.
-    \item For each face detected in the video feed, the app predicts the age and gender of the person. the prediction happen for each 3 frames.
-    \item The app displays the age and gender prediction on the above the face of the person, and the confidence of the prediction.
+    \item The app open window that show live video from camera.
+    \item When app see face in video, it predict age and gender. We make prediction every 3 frames to save computer power.
+    \item App show age range and gender on top of each face, also show how confident model is about prediction.
     
 \end{itemize}
 
 \subsection{Image of the app}
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{assets/app.jpg}
     \caption{Real-time Age and Gender Prediction App}
     \label{fig:app}
 \end{figure}
 
-\bibliographystyle{plain}
-\bibliography{references} 
+\printbibliography
 
 \end{document}
