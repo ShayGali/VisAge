@@ -6,6 +6,5 @@
 *.log
 *.out
 *.gz
-*.bib
 *.bcf
 *.run.xml
