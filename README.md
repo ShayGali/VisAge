@@ -167,6 +167,9 @@ The real-time camera application detects faces and predicts age and gender using
 - Tuning early stopping parameters to prevent overfitting
 - Combined age-gender prediction complexity
 
+###  Application Demo
+![Camera Viewer Application](docs/assets/app.jpg)
+
 ## Contributors
 - [Michael Dadush](https://github.com/michael34666)
 - [Shay Gali](https://github.com/shaygali)
