@@ -39,7 +39,7 @@ The project uses the [Adience Benchmark dataset](https://www.kaggle.com/datasets
     │   │   ├── ui/                 # User interface components
     │   │   └── utils/              # Utility functions
     │   └── models/                 # Pre-trained models
-    └── latex/                      # Project report and documentation
+    └── docs/                      # Project report and documentation
 
 ## Installation
 
